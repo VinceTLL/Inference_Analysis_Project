@@ -1,0 +1,144 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+
+* * *
+
+Part 1: Data
+
+The target population of GSS is adults living in households in United States. The sample is random sample. The survey is conducted face-to-face with an in-face interview. Participation in the study is voluntary.
+This is an observational study as there is no random assignment. therefore, relationship found between variables can be generalized to the US adult population but cannot be marked as a causal relationship.
+
+* * *
+
+Part 2: Research question
+
+I will examine the relationship between the highest year of school completed by fathers of adult Americans and race.
+
+I want to know if there is any significant difference between white and black adult Americans with respect of the highest year of school completed by their fathers,on average. 
+
+I am interested in differences between races and how these differences may have an impact on the social structure of the country. 
+
+This data could be useful for further studiies, such as  the relationship between the type of degree obtained by white and black Americans and the highest grade completed by their parents. 
+
+* * *
+
+Part 3: Exploratory data analysis
+
+I created a subset of the sample and took the variables race(categorical variable) and paeduc(numeric).Because I will focus only on black and white groups I filtered out the group "Other" from the race variable. I also removed the NA values from my numeric variable.
+
+```{r}
+data_study <- gss %>% select(race,Father_completed_School_Year =paeduc) %>% filter(!is.na(Father_completed_School_Year ),race != "Other")
+```
+
+
+In this sample, we can observe a difference between the average highest year of school completed by fathers of white and black respondents. the 25% of the fathers of black respondents group have the highest year of school completed below 6th grade. 
+
+```{r   }
+data_study %>% group_by(race) %>% summarise(sample_size =n(),sample_mean = mean(Father_completed_School_Year), sample_sd = sd(Father_completed_School_Year),sample_median =(median(Father_completed_School_Year)),first_quartile = quantile(Father_completed_School_Year,0.25),thrid_quartile = quantile(Father_completed_School_Year,0.75),min =min(Father_completed_School_Year),max =max(Father_completed_School_Year))
+
+
+```
+
+The median value  for the highest year of school complited by the fathers of white respondents is higher then the ones of the black group.The chart shows both groups have approxmatly same variablity.
+
+```{r}
+ggplot(data_study,aes(x = race,y = Father_completed_School_Year)) + geom_boxplot()
+```
+
+* * *
+
+ Part 4: Inference
+
+I will estimate how much higher or lower fathers of adult white Americans compare to the fathers of adult black Americans in terms of the highest completed grade.
+
+I will construct a  95% confidence interval. 
+The confidence interval is all the range of plausible value for the population parameter.
+The formula for the confidence interval is CI = point estimate +/- Margin of Error.
+
+Our point estimate is our best guess to estimate our unknown population parameter.
+The point estimate for comparing two independent means is the difference between the sample means of the white and black group. 
+The margin of error represents how much percentage points our value will differ from the true population parameter.
+
+
+Before calculating the CI, we need to check if we satisfy the conditions.
+
+1 Independence between and within the groups;
+
+ - Within the groups: The sample observations must be independent.It means that for observational study the sample has to be a random sample and for experimental study, there has to be a random assignment. 
+ 
+ - If sampling without replacement both samples size (of white and Black groups) have to be <10% of their respective population. 
+  We conform to both conditions, therefore we can assume that in our study the observations are independent of each other with respect to the outcome v     ariable that we are studying. 
+  
+- Between groups: The two groups must be independent of each other. The groups should not be paired or have any correspondence. 
+   The white and black groups, in our sample,  are independent.  
+   
+2 Sample size/skew: The more skewed the population distribution is the bigger has to be our sample size. The size of our sample is large enough to conform to this condition. 
+
+calculating the confidence interval.
+
+```{r}
+inference(x = factor(race), y = Father_completed_School_Year,data = data_study,statistic = "mean",type = "ci",method = "theoretical")
+```
+
+
+
+We established a confidence level of 95%, meaning we are 95% confident that the average highest school grade completed by fathers of white adult Americans is  1.5409 to 1.8311 grades higher than the highest school grade completed by fathers of black adult Americans. 
+
+
+Hypothesis test
+
+In order to confirm if this difference is statistically significant we run a hypothesis test.
+
+We need first to define our hypothesis.
+
+Ho - null Hypothesis: mu_white - mu_black = 0. There is no difference between the highest grade completed by the fathers of white and black adult Americans, on average.
+
+Ha - alternative hypothesis: mu_white - mu_black != 0. There is a difference between the highest grade completed by the fathers of white and black adult Americans, on average.
+
+I will test the null hypothesis by calculating the p-value. 
+
+The p-value is the probability of observed or more extreme data given that there is no difference between the average highest grade completed by the fathers of white and black adult Americans, on average.
+
+Before calculating the p-value we need to set our significance level. 
+
+The significance level is the complement of CL in a two-sided hypothesis, therefore our significance level is 5%. 
+The significance level is the probability of rejecting the null hypothesis giving that it is true. If the p-value is lower then the 5%, we can reject the null hypothesis in favor of Ha.
+
+```{r}
+
+
+inference(x=factor(race),y = Father_completed_School_Year,data = data_study,statistic ="mean",type ="ht",method = "theoretical",null = 0, alternative ="twosided")
+
+```
+
+
+
+The p-value is  < 0.0001, hence less than the significance level. In this case, we can reject the null hypothesis in favor of the alternative hypothesis. 
+
+The hypothesis test also agrees  with the confidence interval we calculated before, as the null value, 0, is not within the confidence interval.
+
+We can conclude that these data provide convincing evidence of a difference between the average highest grade completed by fathers of white and black adult Americans.
